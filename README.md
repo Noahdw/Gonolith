@@ -3,8 +3,8 @@ WIP for a distributed monolith.
 Overview
 
 Gonolith is designed to find the right balance between microservice and monolith architectures. It acknowledges a fundamental reality: most microservices ultimately become distributed monoliths due to their service interdependencies, where all components must be operational for the system to function. Rather than fighting this tendency, Gonolith embraces it as a core design principle, allowing for better chaos management.
-Core Features
-Service Installation API
+
+Service Installation API:
 
 Each node in the distributed monolith exposes an installService() API that accepts binary executables. This enables Gonolith to function as a hub where services can:
 
@@ -12,7 +12,7 @@ Each node in the distributed monolith exposes an installService() API that accep
     Connect with other services via RPC
     Potentially reduce unnecessary network hop overhead
 
-Flexible Service Distribution
+Flexible Service Distribution:
 
 Gonolith doesn't mandate that every node must contain every service. This flexible approach offers several advantages:
 
@@ -20,7 +20,7 @@ Gonolith doesn't mandate that every node must contain every service. This flexib
     Maintains the cost-efficiency benefits of microservice architecture
     Allows for resource optimization
 
-Node Configuration
+Node Configuration:
 
 The system operates through sophisticated configuration management:
 
