@@ -28,3 +28,6 @@ The system operates through sophisticated configuration management:
     Allows nodes to host multiple services based on capacity
     Enables minimal service distribution when performance requires it
 
+TODO:
+- [ ] Gossip protocal
+- [ ] Automatic updates via config (binary stored on ~s3 and fetched via config url)
