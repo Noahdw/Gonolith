@@ -27,6 +27,22 @@ type MicroserviceConfig struct {
 	Version string
 }
 
+type MicroserviceStatusAPI struct {
+	Status  string `json:"status"`
+	Id      string `json:"id"`
+	Name    string `json:"name"`
+	Version string `json:"version"`
+}
+
+func (m *Microservice) GetStatus() MicroserviceStatusAPI {
+	return MicroserviceStatusAPI{
+		Status:  m.status,
+		Id:      m.id,
+		Name:    m.config.Name,
+		Version: m.config.Version,
+	}
+}
+
 func (m *Microservice) start() error {
 	// Make it executable
 	err := os.Chmod(m.exeFileName, 0700)
@@ -49,10 +65,13 @@ func (m *Microservice) start() error {
 	}
 	m.process = cmd
 	m.status = "running"
-	fmt.Printf("%#v\n", *m)
-	_ = cmd.Wait()
-	slog.Info("Process exited", "service", m.exeFileName)
-	m.status = "stopped"
+
+	go func() {
+		_ = cmd.Wait()
+		slog.Info("Process exited", "service", m.exeFileName)
+		m.status = "stopped"
+	}()
+
 	return nil
 }
 

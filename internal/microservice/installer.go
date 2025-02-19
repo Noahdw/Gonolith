@@ -23,6 +23,10 @@ func NewMicroservices() *Microservices {
 	}
 }
 
+type MicroservicesStatusAPI struct {
+	Services []MicroserviceStatusAPI `json:"services"`
+}
+
 // Given a zip file, extract its contents and execute the exe
 func (s *Microservices) InstallMicroservice(rawzip []byte) (string, error) {
 	slog.Info("Begin installing microservice...")
@@ -104,6 +108,18 @@ func (s *Microservices) StartMicroservice(idToStart string) error {
 	}
 
 	return service.start()
+}
+
+func (s *Microservices) GetAllStatuses() MicroservicesStatusAPI {
+	statuses := make([]MicroserviceStatusAPI, 0, len(s.entries))
+
+	for _, service := range s.entries {
+		statuses = append(statuses, service.GetStatus())
+	}
+
+	return MicroservicesStatusAPI{
+		Services: statuses,
+	}
 }
 
 func parseConfig(fileName string) *MicroserviceConfig {

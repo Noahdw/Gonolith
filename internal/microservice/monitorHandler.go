@@ -1,7 +1,7 @@
 package microservice
 
 import (
-	"fmt"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
@@ -23,12 +23,7 @@ func (h *MonitorHandler) HandleGetStatus(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var status string
-	for i := range h.services.entries {
-		config := h.services.entries[i].GetConfig()
-		status = fmt.Sprintf("%s %s, v%s, id=%s, status=%s", status,
-			config.Name, config.Version, h.services.entries[i].id, h.services.entries[i].status)
-	}
-	slog.Info("Status", "running", status)
-	io.WriteString(w, status)
+	statuses := h.services.GetAllStatuses()
+	slog.Info("Services status:", "services", statuses)
+	json.NewEncoder(w).Encode(statuses)
 }
