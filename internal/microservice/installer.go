@@ -8,8 +8,6 @@ import (
 	"log/slog"
 	"math/rand"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"github.com/pelletier/go-toml/v2"
@@ -23,25 +21,6 @@ func NewMicroservices() *Microservices {
 	return &Microservices{
 		entries: make(map[string]*Microservice),
 	}
-}
-
-type Microservice struct {
-	config      MicroserviceConfig
-	exeFileName string
-	status      string
-	id          string
-	process     *exec.Cmd
-}
-
-func NewMicroservice() *Microservice {
-	return &Microservice{
-		status: "Not installed",
-	}
-}
-
-type MicroserviceConfig struct {
-	Name    string
-	Version string
 }
 
 // Given a zip file, extract its contents and execute the exe
@@ -108,55 +87,26 @@ func (s *Microservices) InstallMicroservice(rawzip []byte) error {
 	return nil
 }
 
-func (m *Microservice) start() error {
-	// Make it executable
-	err := os.Chmod(m.exeFileName, 0700)
-	if err != nil {
-		return err
-	}
-
-	absPath, err := filepath.Abs(m.exeFileName)
-	if err != nil {
-		return err
-	}
-
-	// Execute the file
-	cmd := exec.Command(absPath)
-	slog.Info("Begin executing", "service", m.exeFileName)
-	err = cmd.Start()
-	if err != nil {
-		slog.Error("Failed to execute service", "error", err.Error())
-		return err
-	}
-	m.process = cmd
-	m.status = "running"
-	fmt.Printf("%#v\n", *m)
-	_ = cmd.Wait()
-	slog.Info("Process exited", "service", m.exeFileName)
-	m.status = "stopped"
-	return nil
-}
-
-func (s *Microservices) addMicroservice(info *Microservice) {
-	s.entries[info.id] = info
-}
-
 func (s *Microservices) StopMicroservice(idToStop string) error {
 	service, has := s.entries[idToStop]
 	if !has {
 		return fmt.Errorf("service not available to stop")
 	}
 
-	if service.process == nil {
-		slog.Error("No cmd for process", "service", service.exeFileName)
-		return fmt.Errorf("no cmd available to stop process")
-	}
-	err := service.process.Process.Kill()
-	if err != nil {
-		return fmt.Errorf("could not kill process %v", err)
+	return service.stop()
+}
+
+func (s *Microservices) StartMicroservice(idToStart string) error {
+	service, has := s.entries[idToStart]
+	if !has {
+		return fmt.Errorf("service not available to start")
 	}
 
-	return nil
+	return service.start()
+}
+
+func (s *Microservices) addMicroservice(info *Microservice) {
+	s.entries[info.id] = info
 }
 
 func parseConfig(fileName string) *MicroserviceConfig {
@@ -182,10 +132,6 @@ func parseConfig(fileName string) *MicroserviceConfig {
 
 	println(config.Name, config.Version, string(raw))
 	return &config
-}
-
-func (m *Microservice) GetConfig() MicroserviceConfig {
-	return m.config
 }
 
 func generateID() string {

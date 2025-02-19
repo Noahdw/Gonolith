@@ -28,10 +28,19 @@ func (h *InstallerHandler) HandleInstallMicroservice(w http.ResponseWriter, r *h
 		http.Error(w, "Error installing microservice", http.StatusInternalServerError)
 	}
 }
+
 func (h *InstallerHandler) HandleStopMicroservice(w http.ResponseWriter, r *http.Request) {
 	serviceId := r.URL.Query().Get("id")
 	err := h.services.StopMicroservice(serviceId)
 	if err != nil {
 		http.Error(w, "Error trying to stop microservice", http.StatusBadRequest)
+	}
+}
+
+func (h *InstallerHandler) HandleStartMicroservice(w http.ResponseWriter, r *http.Request) {
+	serviceId := r.URL.Query().Get("id")
+	err := h.services.StartMicroservice(serviceId)
+	if err != nil {
+		http.Error(w, "Error trying to start microservice", http.StatusBadRequest)
 	}
 }
