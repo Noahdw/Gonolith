@@ -23,10 +23,11 @@ func (h *InstallerHandler) HandleInstallMicroservice(w http.ResponseWriter, r *h
 		return
 	}
 
-	err = h.services.InstallMicroservice(rawzip)
+	id, err := h.services.InstallMicroservice(rawzip)
 	if err != nil {
 		http.Error(w, "Error installing microservice", http.StatusInternalServerError)
 	}
+	io.WriteString(w, id)
 }
 
 func (h *InstallerHandler) HandleStopMicroservice(w http.ResponseWriter, r *http.Request) {

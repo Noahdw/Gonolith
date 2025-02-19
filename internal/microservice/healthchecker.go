@@ -37,7 +37,14 @@ func (h *HealthChecker) Start(ctx context.Context) {
 }
 
 func (h *HealthChecker) checkServices() {
+	// TODO: Make concurrent
 	for _, service := range h.services.entries {
+
+		//TODO: Better way to do status, maybe enum
+		if service.status != "running" {
+			continue
+		}
+
 		// Create connection to service's gRPC server
 		conn, err := grpc.Dial(fmt.Sprintf("localhost:%s", "50051"), grpc.WithInsecure())
 		if err != nil {

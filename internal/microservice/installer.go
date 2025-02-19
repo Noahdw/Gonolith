@@ -24,46 +24,46 @@ func NewMicroservices() *Microservices {
 }
 
 // Given a zip file, extract its contents and execute the exe
-func (s *Microservices) InstallMicroservice(rawzip []byte) error {
+func (s *Microservices) InstallMicroservice(rawzip []byte) (string, error) {
 	slog.Info("Begin installing microservice...")
 	tmpdir, err := os.MkdirTemp("", "microservicedir")
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	err = os.Chdir(tmpdir)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	file, err := os.CreateTemp(tmpdir, "microservicefile")
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer file.Close()
 
 	binaryReader := bytes.NewReader(rawzip)
 	_, err = io.Copy(file, binaryReader)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	archive, err := zip.OpenReader(file.Name())
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	microservice := Microservice{}
+	microservice := NewMicroservice()
 	microservice.id = generateID()
 	for _, f := range archive.File {
 		unzippedfile, err := f.Open()
 		if err != nil {
-			return err
+			return "", err
 		}
 
 		newFile, err := os.Create(f.Name)
 		if err != nil {
-			return err
+			return "", err
 		}
 
 		io.Copy(newFile, unzippedfile)
@@ -80,11 +80,12 @@ func (s *Microservices) InstallMicroservice(rawzip []byte) error {
 		}
 	}
 	microservice.status = "installed"
-	slog.Info("Microservice package OK. Begin service")
-	s.addMicroservice(&microservice)
-	microservice.start()
+	slog.Info("Microservice install OK.")
+	// Keep track of our microservice and start it
+	s.entries[microservice.id] = microservice
+	go microservice.start()
 
-	return nil
+	return microservice.id, nil
 }
 
 func (s *Microservices) StopMicroservice(idToStop string) error {
@@ -103,10 +104,6 @@ func (s *Microservices) StartMicroservice(idToStart string) error {
 	}
 
 	return service.start()
-}
-
-func (s *Microservices) addMicroservice(info *Microservice) {
-	s.entries[info.id] = info
 }
 
 func parseConfig(fileName string) *MicroserviceConfig {
