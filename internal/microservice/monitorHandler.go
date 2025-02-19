@@ -24,9 +24,10 @@ func (h *MonitorHandler) HandleGetStatus(w http.ResponseWriter, r *http.Request)
 	}
 
 	var status string
-	for _, service := range h.services.entries {
-		config := service.GetConfig()
-		status = fmt.Sprintf("%s %s, v%s", status, config.Name, config.Version)
+	for i := range h.services.entries {
+		config := h.services.entries[i].GetConfig()
+		status = fmt.Sprintf("%s %s, v%s, id=%s, status=%s", status,
+			config.Name, config.Version, h.services.entries[i].id, h.services.entries[i].status)
 	}
 	slog.Info("Status", "running", status)
 	io.WriteString(w, status)

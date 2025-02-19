@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math/rand"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,13 +16,21 @@ import (
 )
 
 type Microservices struct {
-	entries []Microservice
+	entries map[string]*Microservice
+}
+
+func NewMicroservices() *Microservices {
+	return &Microservices{
+		entries: make(map[string]*Microservice),
+	}
 }
 
 type Microservice struct {
 	config      MicroserviceConfig
 	exeFileName string
 	status      string
+	id          string
+	process     *exec.Cmd
 }
 
 func NewMicroservice() *Microservice {
@@ -66,6 +75,7 @@ func (s *Microservices) InstallMicroservice(rawzip []byte) error {
 	}
 
 	microservice := Microservice{}
+	microservice.id = generateID()
 	for _, f := range archive.File {
 		unzippedfile, err := f.Open()
 		if err != nil {
@@ -118,14 +128,35 @@ func (m *Microservice) start() error {
 		slog.Error("Failed to execute service", "error", err.Error())
 		return err
 	}
+	m.process = cmd
 	m.status = "running"
+	fmt.Printf("%#v\n", *m)
 	_ = cmd.Wait()
+	slog.Info("Process exited", "service", m.exeFileName)
+	m.status = "stopped"
 	return nil
 }
 
 func (s *Microservices) addMicroservice(info *Microservice) {
-	s.entries = append(s.entries, *info)
-	fmt.Printf("%#v\n", *info)
+	s.entries[info.id] = info
+}
+
+func (s *Microservices) StopMicroservice(idToStop string) error {
+	service, has := s.entries[idToStop]
+	if !has {
+		return fmt.Errorf("service not available to stop")
+	}
+
+	if service.process == nil {
+		slog.Error("No cmd for process", "service", service.exeFileName)
+		return fmt.Errorf("no cmd available to stop process")
+	}
+	err := service.process.Process.Kill()
+	if err != nil {
+		return fmt.Errorf("could not kill process %v", err)
+	}
+
+	return nil
 }
 
 func parseConfig(fileName string) *MicroserviceConfig {
@@ -155,4 +186,13 @@ func parseConfig(fileName string) *MicroserviceConfig {
 
 func (m *Microservice) GetConfig() MicroserviceConfig {
 	return m.config
+}
+
+func generateID() string {
+	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+	b := make([]byte, 6)
+	for i := range b {
+		b[i] = chars[rand.Intn(len(chars))]
+	}
+	return "svc-" + string(b)
 }
