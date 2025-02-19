@@ -13,8 +13,9 @@ func main() {
 
 	services := microservice.Microservices{}
 	handler := microservice.NewInstallerHandler(&services)
-
+	monitorHandler := microservice.NewMonitorHandler(&services)
 	r.Post("/install-service", handler.HandleInstallMicroservice)
+	r.Get("/get-status", monitorHandler.HandleGetStatus)
 
 	// Create and start health checker
 	checker := microservice.NewHealthChecker(&services)

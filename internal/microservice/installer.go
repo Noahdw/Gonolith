@@ -21,6 +21,13 @@ type Microservices struct {
 type Microservice struct {
 	config      MicroserviceConfig
 	exeFileName string
+	status      string
+}
+
+func NewMicroservice() *Microservice {
+	return &Microservice{
+		status: "Not installed",
+	}
 }
 
 type MicroserviceConfig struct {
@@ -77,16 +84,17 @@ func (s *Microservices) InstallMicroservice(rawzip []byte) error {
 			microservice.exeFileName = f.Name
 
 		} else if strings.Contains(f.Name, ".toml") {
-			info := parseConfig(f.Name)
-			if info != nil {
-				s.addMicroservice(&microservice)
+			config := parseConfig(f.Name)
+			if config != nil {
+				microservice.config = *config
 			}
 		}
 	}
-
+	microservice.status = "installed"
+	slog.Info("Microservice package OK. Begin service")
+	s.addMicroservice(&microservice)
 	microservice.start()
 
-	slog.Info("Service installed successfully")
 	return nil
 }
 
@@ -110,6 +118,7 @@ func (m *Microservice) start() error {
 		slog.Error("Failed to execute service", "error", err.Error())
 		return err
 	}
+	m.status = "running"
 	_ = cmd.Wait()
 	return nil
 }
@@ -142,4 +151,8 @@ func parseConfig(fileName string) *MicroserviceConfig {
 
 	println(config.Name, config.Version, string(raw))
 	return &config
+}
+
+func (m *Microservice) GetConfig() MicroserviceConfig {
+	return m.config
 }
