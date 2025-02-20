@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 )
 
 type Microservice struct {
@@ -63,16 +64,35 @@ func (m *Microservice) start() error {
 		slog.Error("Failed to execute service", "error", err.Error())
 		return err
 	}
+
 	m.process = cmd
 	m.status = "running"
 
+	serviceStatus := make(chan error)
 	go func() {
-		_ = cmd.Wait()
+		done := make(chan error)
+		go func() {
+			done <- cmd.Wait()
+		}()
+
+		timer := time.NewTimer(time.Second * 2)
+		defer timer.Stop()
+
+		select {
+		case <-timer.C:
+			m.status = "running"
+			serviceStatus <- nil
+		case err := <-done:
+			m.status = "stopped"
+			serviceStatus <- fmt.Errorf("bad .exe %v", err)
+			return
+		}
+		<-done
 		slog.Info("Process exited", "service", m.exeFileName)
 		m.status = "stopped"
 	}()
 
-	return nil
+	return <-serviceStatus
 }
 
 func (m *Microservice) stop() error {

@@ -1,56 +1,25 @@
 services:
   gonolith1:
-    container_name: gonolith1
-    build:
-      context: .
-      target: dev
+    image: gonolith
+    build: .
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+      - "7946:7946"
     environment:
       - HTTP_PORT=8080
       - GRPC_PORT=50051
       - NODE_NAME=gonolith1
       - CLUSTER_MEMBERS=gonolith2:7946
-    ports:
-      - "8080:8080"
-      - "50051:50051"
-      - "7946:7946"
-    networks:
-      - gonolith-net
-    develop:
-      watch:
-        - action: rebuild
-          path: ./cmd
-        - action: rebuild
-          path: ./internal
-    volumes:
-      - .:/go/src/app
-    restart: unless-stopped
 
   gonolith2:
-    container_name: gonolith2
-    build:
-      context: .
-      target: dev
-    environment:
-      - HTTP_PORT=8081
-      - GRPC_PORT=50052
-      - NODE_NAME=gonolith2
-      - CLUSTER_MEMBERS=gonolith1:7946
+    image: gonolith
     ports:
       - "8081:8080"
       - "50052:50051"
       - "7947:7946"
-    networks:
-      - gonolith-net
-    develop:
-      watch:
-        - action: rebuild
-          path: ./cmd
-        - action: rebuild
-          path: ./internal
-    volumes:
-      - .:/go/src/app
-    restart: unless-stopped
-
-networks:
-  gonolith-net:
-    name: gonolith-net
+    environment:
+      - HTTP_PORT=8080
+      - GRPC_PORT=50051
+      - NODE_NAME=gonolith2
+      - CLUSTER_MEMBERS=gonolith1:7946

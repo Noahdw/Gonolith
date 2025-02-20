@@ -56,9 +56,13 @@ func (s *Microservices) InstallMicroservice(rawzip []byte) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
+	type requiredFIleCount struct {
+		config int
+		exe    int
+	}
 	microservice := NewMicroservice()
 	microservice.id = generateID()
+	count := requiredFIleCount{}
 	for _, f := range archive.File {
 		unzippedfile, err := f.Open()
 		if err != nil {
@@ -75,21 +79,29 @@ func (s *Microservices) InstallMicroservice(rawzip []byte) (string, error) {
 
 		if strings.Contains(f.Name, ".exe") {
 			microservice.exeFileName = f.Name
-
-		} else if strings.Contains(f.Name, ".toml") {
+			count.exe++
+		} else if f.Name == "config.toml" {
 			config := parseConfig(f.Name)
 			if config != nil {
 				microservice.config = *config
+				count.config++
 			}
 		}
 	}
+
+	// Simple check to try to make sure the zip contents are minimally valid
+	if count.config != 1 || count.exe != 1 {
+		return "", fmt.Errorf("invalid service package %s %d, %s %d",
+			"config", count.config,
+			"exe", count.exe)
+	}
+
 	microservice.status = "installed"
 	slog.Info("Microservice install OK.")
 	// Keep track of our microservice and start it
 	s.entries[microservice.id] = microservice
-	go microservice.start()
 
-	return microservice.id, nil
+	return microservice.id, microservice.start()
 }
 
 func (s *Microservices) StopMicroservice(idToStop string) error {

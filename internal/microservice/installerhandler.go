@@ -2,6 +2,7 @@ package microservice
 
 import (
 	"io"
+	"log/slog"
 	"net/http"
 )
 
@@ -25,7 +26,9 @@ func (h *InstallerHandler) HandleInstallMicroservice(w http.ResponseWriter, r *h
 
 	id, err := h.services.InstallMicroservice(rawzip)
 	if err != nil {
+		slog.Error("could not install microservice", "err", err.Error())
 		http.Error(w, "Error installing microservice", http.StatusInternalServerError)
+		return
 	}
 	io.WriteString(w, id)
 }

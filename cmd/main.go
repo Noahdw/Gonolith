@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/hashicorp/memberlist"
@@ -36,7 +39,7 @@ func main() {
 	// Join cluster if CLUSTER_MEMBERS is set
 	if members := os.Getenv("CLUSTER_MEMBERS"); members != "" {
 		memberList := strings.Split(members, ",")
-		_, err = list.Join(memberList)
+		err := joinClusterWithRetry(list, memberList, 5, time.Second*3)
 		if err != nil {
 			panic("Failed to join cluster: " + err.Error())
 		}
@@ -59,4 +62,18 @@ func main() {
 	go checker.Start(ctx)
 
 	http.ListenAndServe("0.0.0.0:"+httpPort, r)
+}
+
+func joinClusterWithRetry(list *memberlist.Memberlist, members []string, retries int, delay time.Duration) error {
+	var lastErr error
+	for i := 0; i < retries; i++ {
+		_, err := list.Join(members)
+		if err == nil {
+			return nil
+		}
+		lastErr = err
+		slog.Warn("Failed to join cluster, retrying...", "attempt", i+1, "error", err)
+		time.Sleep(delay)
+	}
+	return fmt.Errorf("failed to join cluster after %d attempts: %v", retries, lastErr)
 }

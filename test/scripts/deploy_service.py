@@ -12,18 +12,27 @@ def get_project_root():
 
 
 def build_service():
-    """Build the greet service for Linux since Gonolith runs in Docker."""
+    """Build the greet service for Linux while keeping .exe extension."""
     root = get_project_root()
     service_dir = root / "test/services/greet-service"
-    exe_path = service_dir / "greet-service"  # No .exe extension for Linux
+    exe_path = service_dir / "greet-service.exe"
 
     print("Building service for Linux...")
     env = os.environ.copy()
     env["GOOS"] = "linux"  # Set target OS to Linux
     env["GOARCH"] = "amd64"  # Set architecture
+    env["CGO_ENABLED"] = "0"  # Disable cgo for static builds
 
     result = subprocess.run(
-        ["go", "build", "-o", "greet-service", "./server"],
+        [
+            "go",
+            "build",
+            "-ldflags",
+            "-extldflags '-static'",
+            "-o",
+            "greet-service.exe",
+            "./server",
+        ],
         cwd=service_dir,
         capture_output=True,
         text=True,
@@ -44,7 +53,7 @@ def create_zip():
     service_dir = root / "test/services/greet-service"
     zip_path = service_dir / "service.zip"
 
-    exe_path = service_dir / "greet-service"  # Linux executable name
+    exe_path = service_dir / "greet-service.exe"
     config_path = service_dir / "server" / "config.toml"
 
     print(f"Exe path: {exe_path} (exists: {exe_path.exists()})")
@@ -53,7 +62,7 @@ def create_zip():
     with zipfile.ZipFile(zip_path, "w") as zf:
         # Add executable with arcname to ensure correct name in zip
         if exe_path.exists():
-            zf.write(exe_path, arcname="greet-service")  # Linux executable name
+            zf.write(exe_path, arcname="greet-service.exe")
         else:
             raise FileNotFoundError(f"Executable not found at {exe_path}")
 
