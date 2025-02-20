@@ -1,7 +1,9 @@
-version: '3.8'
 services:
   gonolith1:
-    build: .
+    container_name: gonolith1
+    build:
+      context: .
+      target: dev
     environment:
       - HTTP_PORT=8080
       - GRPC_PORT=50051
@@ -11,9 +13,23 @@ services:
       - "8080:8080"
       - "50051:50051"
       - "7946:7946"
+    networks:
+      - gonolith-net
+    develop:
+      watch:
+        - action: rebuild
+          path: ./cmd
+        - action: rebuild
+          path: ./internal
+    volumes:
+      - .:/go/src/app
+    restart: unless-stopped
 
   gonolith2:
-    build: .
+    container_name: gonolith2
+    build:
+      context: .
+      target: dev
     environment:
       - HTTP_PORT=8081
       - GRPC_PORT=50052
@@ -23,3 +39,18 @@ services:
       - "8081:8080"
       - "50052:50051"
       - "7947:7946"
+    networks:
+      - gonolith-net
+    develop:
+      watch:
+        - action: rebuild
+          path: ./cmd
+        - action: rebuild
+          path: ./internal
+    volumes:
+      - .:/go/src/app
+    restart: unless-stopped
+
+networks:
+  gonolith-net:
+    name: gonolith-net
