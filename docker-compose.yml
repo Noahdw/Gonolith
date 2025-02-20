@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+  gonolith1:
+    build: .
+    environment:
+      - HTTP_PORT=8080
+      - GRPC_PORT=50051
+      - NODE_NAME=gonolith1
+      - CLUSTER_MEMBERS=gonolith2:7946
+    ports:
+      - "8080:8080"
+      - "50051:50051"
+      - "7946:7946"
+
+  gonolith2:
+    build: .
+    environment:
+      - HTTP_PORT=8081
+      - GRPC_PORT=50052
+      - NODE_NAME=gonolith2
+      - CLUSTER_MEMBERS=gonolith1:7946
+    ports:
+      - "8081:8080"
+      - "50052:50051"
+      - "7947:7946"

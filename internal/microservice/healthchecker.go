@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
 
 	"google.golang.org/grpc"
@@ -37,6 +38,11 @@ func (h *HealthChecker) Start(ctx context.Context) {
 }
 
 func (h *HealthChecker) checkServices() {
+	grpcPort := os.Getenv("GRPC_PORT")
+	if grpcPort == "" {
+		grpcPort = "50051"
+	}
+
 	// TODO: Make concurrent
 	for _, service := range h.services.entries {
 
@@ -46,7 +52,7 @@ func (h *HealthChecker) checkServices() {
 		}
 
 		// Create connection to service's gRPC server
-		conn, err := grpc.Dial(fmt.Sprintf("localhost:%s", "50051"), grpc.WithInsecure())
+		conn, err := grpc.Dial(fmt.Sprintf("localhost:%s", grpcPort), grpc.WithInsecure())
 		if err != nil {
 			slog.Error("Failed to connect to service", "name", service.exeFileName, "error", err)
 			continue
