@@ -1,4 +1,4 @@
-WIP for a distributed monolith.
+WIP for a distributed modular monolith.
 
 Overview
 
