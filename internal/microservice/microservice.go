@@ -1,6 +1,7 @@
 package microservice
 
 import (
+	"bytes"
 	"fmt"
 	"log/slog"
 	"os"
@@ -50,7 +51,6 @@ func (m *Microservice) start() error {
 	if err != nil {
 		return err
 	}
-
 	absPath, err := filepath.Abs(m.exeFileName)
 	if err != nil {
 		return err
@@ -58,6 +58,12 @@ func (m *Microservice) start() error {
 
 	// Execute the file
 	cmd := exec.Command(absPath)
+
+	// Add stdout/stderr capture for better diagnostics
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
 	slog.Info("Begin executing", "service", m.exeFileName)
 	err = cmd.Start()
 	if err != nil {
@@ -70,9 +76,10 @@ func (m *Microservice) start() error {
 
 	serviceStatus := make(chan error)
 	go func() {
-		done := make(chan error)
+		done := make(chan error, 1)
 		go func() {
 			done <- cmd.Wait()
+			close(done)
 		}()
 
 		timer := time.NewTimer(time.Second * 2)
@@ -80,15 +87,36 @@ func (m *Microservice) start() error {
 
 		select {
 		case <-timer.C:
+			// Service ran for at least 2 seconds, consider it stable
 			m.status = "running"
 			serviceStatus <- nil
 		case err := <-done:
+			// Service exited quickly, that's an error
 			m.status = "stopped"
-			serviceStatus <- fmt.Errorf("bad .exe %v", err)
+			if err != nil {
+				if exitErr, ok := err.(*exec.ExitError); ok {
+					// Get the actual exit code
+					serviceStatus <- fmt.Errorf("bad .exe exit status %d: stdout: %s, stderr: %s",
+						exitErr.ExitCode(), stdout.String(), stderr.String())
+				} else {
+					serviceStatus <- fmt.Errorf("bad .exe: %v, stdout: %s, stderr: %s",
+						err, stdout.String(), stderr.String())
+				}
+			} else {
+				serviceStatus <- fmt.Errorf("service exited unexpectedly with success code, stdout: %s, stderr: %s",
+					stdout.String(), stderr.String())
+			}
 			return
 		}
-		<-done
-		slog.Info("Process exited", "service", m.exeFileName)
+
+		// Wait for eventual termination
+		err := <-done
+		if err != nil {
+			slog.Error("Process exited with error", "service", m.exeFileName, "error", err)
+		} else {
+			slog.Info("Process exited", "service", m.exeFileName)
+		}
+
 		m.status = "stopped"
 	}()
 

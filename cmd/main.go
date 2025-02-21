@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -27,9 +28,20 @@ func main() {
 		nodeName = "gonolith1"
 	}
 
+	memberPortStr := os.Getenv("MEMBERLIST_PORT")
+	if memberPortStr == "" {
+		memberPortStr = "7946"
+	}
+	memberPort, err := strconv.Atoi(memberPortStr)
+	if err != nil {
+		panic(err)
+	}
+
 	// Configure memberlist
 	config := memberlist.DefaultLocalConfig()
 	config.Name = nodeName
+	config.BindPort = memberPort
+	config.AdvertisePort = memberPort
 
 	list, err := memberlist.Create(config)
 	if err != nil {

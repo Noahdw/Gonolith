@@ -22,7 +22,7 @@ func (s *server) SayHello(ctx context.Context, req *pb.HelloRequest) (*pb.HelloR
 }
 
 func main() {
-	lis, err := net.Listen("tcp", "localhost:8080")
+	lis, err := net.Listen("tcp", "0.0.0.0:8088")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

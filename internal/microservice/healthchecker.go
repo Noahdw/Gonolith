@@ -59,7 +59,6 @@ func (h *HealthChecker) checkServices() {
 		}
 		defer conn.Close()
 
-		// Create health check client
 		healthClient := healthpb.NewHealthClient(conn)
 
 		// Perform health check
@@ -69,13 +68,11 @@ func (h *HealthChecker) checkServices() {
 
 		if err != nil {
 			slog.Error("Health check failed", "service", service.exeFileName, "error", err)
-			// Handle unhealthy service
 			continue
 		}
 
 		if resp.Status != healthpb.HealthCheckResponse_SERVING {
 			slog.Warn("Service unhealthy", "service", service.exeFileName, "status", resp.Status)
-			// Handle unhealthy service
 		}
 	}
 }
