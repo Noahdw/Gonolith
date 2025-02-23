@@ -75,6 +75,11 @@ func (m *Microservice) start() error {
 	m.status = "running"
 
 	serviceStatus := make(chan error)
+
+	// Since we want to return a service id and a reasonable aknowldgment
+	// that the service started correctly, we will ensure this goroutine
+	// returns a status within 2 seconds, but continue monitoring the cmd
+	// until it returns (shouldn't normally).
 	go func() {
 		done := make(chan error, 1)
 		go func() {

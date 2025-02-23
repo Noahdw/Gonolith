@@ -1,0 +1,1 @@
+Node package is a self-reference to the application itself. It is the application.
